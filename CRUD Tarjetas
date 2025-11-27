@@ -1,0 +1,93 @@
+package bancosapp;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.List;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
+// Componentes esperados: cmbCliente, txtSaldoInicial, tblTarjetas
+public class FrmTarjetas extends javax.swing.JFrame {
+
+    private final TarjetaDAO tarjetaDAO = new TarjetaDAO();
+    private final ClienteDAO clienteDAO = new ClienteDAO(); 
+    DefaultTableModel modelo;
+
+    public FrmTarjetas() {
+        initComponents();
+        setLocationRelativeTo(null); 
+        cargarClientes();
+        mostrarTarjetas();
+    }
+
+    private void cargarClientes() {
+        DefaultComboBoxModel<Cliente> cmbModelo = new DefaultComboBoxModel<>();
+        try {
+            List<Cliente> clientes = clienteDAO.listar();
+            for (Cliente c : clientes) { cmbModelo.addElement(c); }
+            cmbCliente.setModel(cmbModelo); 
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al cargar clientes: " + e.getMessage()); }
+    }
+    
+    void mostrarTarjetas() {
+        try {
+            List<Tarjeta> tarjetas = tarjetaDAO.listar();
+            modelo = new DefaultTableModel();
+            modelo.addColumn("ID Tarjeta");
+            modelo.addColumn("Saldo");
+            modelo.addColumn("ID Cliente");
+
+            for (Tarjeta t : tarjetas) {
+                modelo.addRow(new Object[]{ t.getId_tarjeta(), t.getSaldo(), t.getIdc() });
+            }
+            tblTarjetas.setModel(modelo);
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al mostrar tarjetas: " + e.getMessage()); }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void initComponents() { /* [Tu código initComponents() aquí] */ }
+
+    private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) { // Agregar                                        
+        try {
+            Cliente clienteSeleccionado = (Cliente) cmbCliente.getSelectedItem();
+            BigDecimal saldo = new BigDecimal(txtSaldoInicial.getText());
+
+            if (clienteSeleccionado == null) { JOptionPane.showMessageDialog(this, "Debe seleccionar un cliente."); return; }
+            if (saldo.compareTo(BigDecimal.ZERO) < 0) { JOptionPane.showMessageDialog(this, "El saldo inicial no puede ser negativo."); return; }
+            
+            Tarjeta nuevaTarjeta = new Tarjeta(saldo, clienteSeleccionado.getIdc());
+            tarjetaDAO.insertar(nuevaTarjeta);
+
+            JOptionPane.showMessageDialog(this, "Tarjeta agregada correctamente");
+            txtSaldoInicial.setText("0.00");
+            mostrarTarjetas();
+        } catch (NumberFormatException e) { JOptionPane.showMessageDialog(this, "El saldo debe ser un número válido.");
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al agregar tarjeta: " + e.getMessage()); }        
+    }
+    
+    private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) { // Eliminar                                         
+        try {
+            int fila = tblTarjetas.getSelectedRow();
+            if (fila < 0) { JOptionPane.showMessageDialog(this, "Seleccione una tarjeta para eliminar."); return; }
+
+            int idTarjeta = (int) tblTarjetas.getValueAt(fila, 0);
+            int confirmacion = JOptionPane.showConfirmDialog(this, "¿Seguro de eliminar la Tarjeta ID: " + idTarjeta + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
+            
+            if (confirmacion == JOptionPane.YES_OPTION) {
+                tarjetaDAO.eliminar(idTarjeta);
+                JOptionPane.showMessageDialog(this, "Tarjeta eliminada correctamente");
+                mostrarTarjetas();
+            }
+        } catch (SQLException e) {
+            if (e.getMessage().contains("violación de la clave foránea")) {
+                 JOptionPane.showMessageDialog(this, "Error: No se puede eliminar esta tarjeta porque tiene movimientos asociados.", "Error de Integridad", JOptionPane.ERROR_MESSAGE);
+            } else {
+                 JOptionPane.showMessageDialog(this, "Error al eliminar tarjeta: " + e.getMessage());
+            }
+        }
+    }
+    
+    private void btnMostrarActionPerformed(java.awt.event.ActionEvent evt) { // Mostrar                                         
+        mostrarTarjetas(); 
+    }                                  
