@@ -1,0 +1,33 @@
+package bancosapp;
+
+import java.math.BigDecimal;
+
+public class Tarjeta {
+    private int id_tarjeta; 
+    private BigDecimal saldo;
+    private int idc; // Foreign Key a Clientes
+
+    public Tarjeta(int id_tarjeta, BigDecimal saldo, int idc) {
+        this.id_tarjeta = id_tarjeta;
+        this.saldo = saldo;
+        this.idc = idc;
+    }
+
+    public Tarjeta(BigDecimal saldo, int idc) {
+        this.saldo = saldo;
+        this.idc = idc;
+    }
+
+    public int getId_tarjeta() { return id_tarjeta; }
+    public BigDecimal getSaldo() { return saldo; }
+    public int getIdc() { return idc; }
+
+    public void setId_tarjeta(int id_tarjeta) { this.id_tarjeta = id_tarjeta; }
+    public void setSaldo(BigDecimal saldo) { this.saldo = saldo; }
+    public void setIdc(int idc) { this.idc = idc; }
+    
+    @Override
+    public String toString() {
+        return "ID " + id_tarjeta + " | Saldo: " + saldo.toString();
+    }
+ }
