@@ -1,0 +1,78 @@
+package bancosapp;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.math.BigDecimal;
+
+public class TarjetaDAO {
+
+    private Connection getConn() throws SQLException {
+        return ConexionBase.getConnection();
+    }
+
+    public List<Tarjeta> listar() throws SQLException {
+        List<Tarjeta> lista = new ArrayList<>();
+        String sql = "SELECT id_tarjeta, saldo, idc FROM tarjetas ORDER BY id_tarjeta";
+        try (Connection c = getConn(); 
+             Statement st = c.createStatement(); 
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                Tarjeta t = new Tarjeta(
+                    rs.getInt("id_tarjeta"),
+                    rs.getBigDecimal("saldo"),
+                    rs.getInt("idc")
+                );
+                lista.add(t);
+            }
+        }
+        return lista;
+    }
+    
+    public void insertar(Tarjeta t) throws SQLException {
+        String sql = "INSERT INTO tarjetas (saldo, idc) VALUES (?,?)";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBigDecimal(1, t.getSaldo());
+            ps.setInt(2, t.getIdc());
+            ps.executeUpdate();
+        }
+    }
+
+    public void actualizarSaldo(int id_tarjeta, BigDecimal nuevoSaldo) throws SQLException {
+        String sql = "UPDATE tarjetas SET saldo=? WHERE id_tarjeta=?";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBigDecimal(1, nuevoSaldo);
+            ps.setInt(2, id_tarjeta);
+            ps.executeUpdate();
+        }
+    }
+
+    public void eliminar(int id_tarjeta) throws SQLException {
+        String sql = "DELETE FROM tarjetas WHERE id_tarjeta=?";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id_tarjeta);
+            ps.executeUpdate();
+        }
+    }
+    
+    public Tarjeta obtenerPorId(int id_tarjeta) throws SQLException {
+        String sql = "SELECT id_tarjeta, saldo, idc FROM tarjetas WHERE id_tarjeta=?";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id_tarjeta);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Tarjeta(
+                        rs.getInt("id_tarjeta"),
+                        rs.getBigDecimal("saldo"),
+                        rs.getInt("idc")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+}
