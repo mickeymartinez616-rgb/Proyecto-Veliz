@@ -1,0 +1,38 @@
+package bancosapp;
+
+import java.math.BigDecimal;
+
+public class Movimiento {
+    private int idm;
+    private String tipo;
+    private BigDecimal cantidad;
+    private String descripcion;
+    private int id_tarjeta; // Foreign Key a Tarjetas
+
+    public Movimiento(int idm, String tipo, BigDecimal cantidad, String descripcion, int id_tarjeta) {
+        this.idm = idm;
+        this.tipo = tipo;
+        this.cantidad = cantidad;
+        this.descripcion = descripcion;
+        this.id_tarjeta = id_tarjeta;
+    }
+
+    public Movimiento(String tipo, BigDecimal cantidad, String descripcion, int id_tarjeta) {
+        this.tipo = tipo;
+        this.cantidad = cantidad;
+        this.descripcion = descripcion;
+        this.id_tarjeta = id_tarjeta;
+    }
+
+    public int getIdm() { return idm; }
+    public String getTipo() { return tipo; }
+    public BigDecimal getCantidad() { return cantidad; }
+    public String getDescripcion() { return descripcion; }
+    public int getId_tarjeta() { return id_tarjeta; }
+
+    public void setIdm(int idm) { this.idm = idm; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
+    public void setCantidad(BigDecimal cantidad) { this.cantidad = cantidad; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public void setId_tarjeta(int id_tarjeta) { this.id_tarjeta = id_tarjeta; }
+}
