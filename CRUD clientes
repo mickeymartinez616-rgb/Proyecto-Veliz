@@ -1,0 +1,122 @@
+package bancosapp;
+import java.sql.SQLException;
+import java.util.List;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
+// Componentes esperados: txtNombre, txtAPaterno, txtAMaterno, cmbBanco, tblClientes
+public class FrmClientes extends javax.swing.JFrame {
+
+    private final ClienteDAO clienteDAO = new ClienteDAO();
+    private final BancoDAO bancoDAO = new BancoDAO();
+    DefaultTableModel modelo;
+
+    public FrmClientes() {
+        initComponents();
+        setLocationRelativeTo(null); 
+        cargarBancos();
+        mostrarClientes();
+    }
+
+    private void cargarBancos() {
+        DefaultComboBoxModel<Banco> cmbModelo = new DefaultComboBoxModel<>();
+        try {
+            List<Banco> bancos = bancoDAO.listar();
+            for (Banco b : bancos) { cmbModelo.addElement(b); }
+            cmbBanco.setModel(cmbModelo); 
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al cargar bancos: " + e.getMessage()); }
+    }
+
+    void mostrarClientes() {
+        try {
+            List<Cliente> clientes = clienteDAO.listar();
+            modelo = new DefaultTableModel();
+            modelo.addColumn("ID");
+            modelo.addColumn("Nombre");
+            modelo.addColumn("A. Paterno");
+            modelo.addColumn("A. Materno");
+            modelo.addColumn("ID Banco"); 
+
+            for (Cliente c : clientes) {
+                modelo.addRow(new Object[]{ c.getIdc(), c.getNombre(), c.getApellidoPaterno(), c.getApellidoMaterno(), c.getIdb() });
+            }
+            tblClientes.setModel(modelo);
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al mostrar clientes: " + e.getMessage()); }
+    }
+    
+    private void limpiarCampos() { /* ... */ }
+
+    @SuppressWarnings("unchecked")
+    private void initComponents() { /* [Tu código initComponents() aquí] */ }
+    
+    private void tblClientesMouseClicked(java.awt.event.MouseEvent evt) { /* [Llenar campos] */ }    
+    
+    private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) { // Agregar                                        
+        try {
+            String nombre = txtNombre.getText().trim();
+            String aPaterno = txtAPaterno.getText().trim();
+            String aMaterno = txtAMaterno.getText().trim();
+            Banco bancoSeleccionado = (Banco) cmbBanco.getSelectedItem();
+
+            if (nombre.isEmpty() || aPaterno.isEmpty() || aMaterno.isEmpty() || bancoSeleccionado == null) {
+                JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios."); return;
+            }
+            
+            Cliente nuevoCliente = new Cliente(nombre, aPaterno, aMaterno, bancoSeleccionado.getIdb());
+            clienteDAO.insertar(nuevoCliente);
+            JOptionPane.showMessageDialog(this, "Cliente agregado correctamente");
+            limpiarCampos();
+            mostrarClientes();
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al agregar cliente: " + e.getMessage()); }        
+    }                                        
+
+    private void btnActualizarActionPerformed(java.awt.event.ActionEvent evt) { // Actualizar                                         
+     try {
+        int fila = tblClientes.getSelectedRow();
+        if (fila < 0) { JOptionPane.showMessageDialog(this, "Seleccione un cliente para actualizar."); return; }
+        
+        int idCliente = (int) tblClientes.getValueAt(fila, 0); 
+        String nombre = txtNombre.getText().trim();
+        String aPaterno = txtAPaterno.getText().trim();
+        String aMaterno = txtAMaterno.getText().trim();
+        Banco bancoSeleccionado = (Banco) cmbBanco.getSelectedItem();
+
+        if (nombre.isEmpty() || aPaterno.isEmpty() || aMaterno.isEmpty() || bancoSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios."); return;
+        }
+
+        Cliente clienteAActualizar = new Cliente(idCliente, nombre, aPaterno, aMaterno, bancoSeleccionado.getIdb());
+        clienteDAO.actualizar(clienteAActualizar);
+        JOptionPane.showMessageDialog(this, "Cliente actualizado correctamente");
+        limpiarCampos();
+        mostrarClientes();
+    } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al actualizar cliente: " + e.getMessage()); }        
+    }                                        
+
+    private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) { // Eliminar                                         
+    try {
+        int fila = tblClientes.getSelectedRow();
+        if (fila < 0) { JOptionPane.showMessageDialog(this, "Seleccione un cliente para eliminar."); return; }
+        int idCliente = (int) tblClientes.getValueAt(fila, 0); 
+
+        int confirmacion = JOptionPane.showConfirmDialog(this, "¿Seguro de eliminar el cliente ID: " + idCliente + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            clienteDAO.eliminar(idCliente);
+            JOptionPane.showMessageDialog(this, "Cliente eliminado correctamente");
+            limpiarCampos();
+            mostrarClientes();
+        }
+    } catch (SQLException e) {
+        if (e.getMessage().contains("violación de la clave foránea")) {
+             JOptionPane.showMessageDialog(this, "Error: No se puede eliminar este cliente porque tiene tarjetas asociadas.", "Error de Integridad", JOptionPane.ERROR_MESSAGE);
+        } else {
+             JOptionPane.showMessageDialog(this, "Error al eliminar cliente: " + e.getMessage());
+        }
+    }
+    }                                        
+
+    private void btnMostrarActionPerformed(java.awt.event.ActionEvent evt) { // Mostrar                                         
+        mostrarClientes(); 
+    }                        
