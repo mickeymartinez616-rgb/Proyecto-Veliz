@@ -1,0 +1,54 @@
+package bancosapp;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BancoDAO {
+
+    private Connection getConn() throws SQLException {
+        return ConexionBase.getConnection();
+    }
+
+    public List<Banco> listar() throws SQLException {
+        List<Banco> lista = new ArrayList<>();
+        String sql = "SELECT idb, nombre FROM bancos ORDER BY idb";
+        try (Connection c = getConn(); 
+             Statement st = c.createStatement(); 
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                Banco b = new Banco(rs.getInt("idb"), rs.getString("nombre"));
+                lista.add(b);
+            }
+        }
+        return lista;
+    }
+
+    public void insertar(Banco b) throws SQLException {
+        String sql = "INSERT INTO bancos (nombre) VALUES (?)";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, b.getNombre());
+            ps.executeUpdate();
+        }
+    }
+
+    public void actualizar(Banco b) throws SQLException {
+        String sql = "UPDATE bancos SET nombre=? WHERE idb=?";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, b.getNombre());
+            ps.setInt(2, b.getIdb());
+            ps.executeUpdate();
+        }
+    }
+
+    public void eliminar(int idb) throws SQLException {
+        String sql = "DELETE FROM bancos WHERE idb=?";
+        try (Connection c = getConn(); 
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, idb);
+            ps.executeUpdate();
+        }
+    }
+}
