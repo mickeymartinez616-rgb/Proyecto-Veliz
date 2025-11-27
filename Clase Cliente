@@ -1,0 +1,41 @@
+package bancosapp;
+
+public class Cliente {
+    private int idc;
+    private String nombre;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    private int idb; // Foreign Key a Bancos
+
+    public Cliente(int idc, String nombre, String apellidoPaterno, String apellidoMaterno, int idb) {
+        this.idc = idc;
+        this.nombre = nombre;
+        this.apellidoPaterno = apellidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
+        this.idb = idb;
+    }
+
+    public Cliente(String nombre, String apellidoPaterno, String apellidoMaterno, int idb) {
+        this.nombre = nombre;
+        this.apellidoPaterno = apellidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
+        this.idb = idb;
+    }
+
+    public int getIdc() { return idc; }
+    public String getNombre() { return nombre; }
+    public String getApellidoPaterno() { return apellidoPaterno; }
+    public String getApellidoMaterno() { return apellidoMaterno; }
+    public int getIdb() { return idb; }
+
+    public void setIdc(int idc) { this.idc = idc; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setApellidoPaterno(String apellidoPaterno) { this.apellidoPaterno = apellidoPaterno; }
+    public void setApellidoMaterno(String apellidoMaterno) { this.apellidoMaterno = apellidoMaterno; }
+    public void setIdb(int idb) { this.idb = idb; }
+    
+    @Override
+    public String toString() {
+        return nombre + " " + apellidoPaterno + " (ID: " + idc + ")";
+    }
+}
