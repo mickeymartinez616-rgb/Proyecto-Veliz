@@ -1,0 +1,99 @@
+package bancosapp;
+
+import java.sql.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class MovimientoDAO {
+    
+    private final TarjetaDAO tarjetaDAO = new TarjetaDAO();
+
+    private Connection getConn() throws SQLException {
+        return ConexionBase.getConnection();
+    }
+    
+    public void registrarMovimientoTransaccion(Movimiento mov) throws SQLException, IllegalStateException {
+        Connection c = null;
+        try {
+            c = getConn();
+            c.setAutoCommit(false); // Iniciar Transacción
+            
+            Tarjeta tarjetaActual = tarjetaDAO.obtenerPorId(mov.getId_tarjeta());
+            if (tarjetaActual == null) { throw new IllegalStateException("Tarjeta de origen no encontrada."); }
+            
+            BigDecimal cantidad = mov.getCantidad().setScale(2, RoundingMode.HALF_UP);
+            BigDecimal nuevoSaldo;
+            
+            String tipo = mov.getTipo().toLowerCase();
+            if (tipo.contains("abono") || tipo.contains("depósito")) {
+                nuevoSaldo = tarjetaActual.getSaldo().add(cantidad);
+            } else if (tipo.contains("retiro")) {
+                if (tarjetaActual.getSaldo().compareTo(cantidad) < 0) {
+                    throw new IllegalStateException("Saldo insuficiente en la tarjeta ID: " + mov.getId_tarjeta());
+                }
+                nuevoSaldo = tarjetaActual.getSaldo().subtract(cantidad);
+            } else {
+                 throw new IllegalStateException("Tipo de movimiento no soportado para operación simple.");
+            }
+
+            // 1. Actualizar el saldo de la tarjeta
+            tarjetaDAO.actualizarSaldo(mov.getId_tarjeta(), nuevoSaldo);
+            
+            // 2. Insertar el registro del movimiento
+            insertarMovimientoInterno(c, mov.getTipo(), cantidad, mov.getDescripcion(), mov.getId_tarjeta());
+            
+            c.commit(); // Confirmar la transacción
+        } catch (SQLException | IllegalStateException e) {
+            if (c != null) { c.rollback(); } // Revertir la transacción si hay error
+            throw e; 
+        } finally {
+            if (c != null) { c.setAutoCommit(true); c.close(); }
+        }
+    }
+    
+    public void transferir(int id_origen, int id_destino, BigDecimal monto, String descripcion) throws SQLException, IllegalStateException {
+        Connection c = null;
+        try {
+            c = getConn();
+            c.setAutoCommit(false);
+
+            Tarjeta origen = tarjetaDAO.obtenerPorId(id_origen);
+            Tarjeta destino = tarjetaDAO.obtenerPorId(id_destino);
+            monto = monto.setScale(2, RoundingMode.HALF_UP);
+
+            if (origen == null || destino == null) { throw new IllegalStateException("Una o ambas tarjetas no existen."); }
+            if (origen.getSaldo().compareTo(monto) < 0) {
+                throw new IllegalStateException("Saldo insuficiente en la tarjeta de origen ID: " + id_origen);
+            }
+            
+            // 1. Actualizar saldos
+            tarjetaDAO.actualizarSaldo(id_origen, origen.getSaldo().subtract(monto));
+            tarjetaDAO.actualizarSaldo(id_destino, destino.getSaldo().add(monto));
+
+            // 2. Registrar movimientos de Retiro y Abono
+            String descOrigen = "Transferencia a ID: " + id_destino + " - " + descripcion;
+            String descDestino = "Transferencia de ID: " + id_origen + " - " + descripcion;
+            
+            insertarMovimientoInterno(c, "Retiro/Transferencia", monto, descOrigen, id_origen);
+            insertarMovimientoInterno(c, "Abono/Transferencia", monto, descDestino, id_destino);
+            
+            c.commit();
+        } catch (SQLException | IllegalStateException e) {
+            if (c != null) { c.rollback(); }
+            throw e;
+        } finally {
+            if (c != null) { c.setAutoCommit(true); c.close(); }
+        }
+    }
+    
+    private void insertarMovimientoInterno(Connection c, String tipo, BigDecimal cantidad, String descripcion, int id_tarjeta) throws SQLException {
+        String sql = "INSERT INTO Movimientos (tipo, cantidad, descripcion, id_tarjeta) VALUES (?,?,?,?)";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, tipo);
+            ps.setBigDecimal(2, cantidad);
+            ps.setString(3, descripcion);
+            ps.setInt(4, id_tarjeta);
+            ps.executeUpdate();
+        }
+    }
+}
