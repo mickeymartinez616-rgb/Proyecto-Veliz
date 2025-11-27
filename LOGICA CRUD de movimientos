@@ -1,0 +1,92 @@
+package bancosapp;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.List;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
+
+// Componentes esperados: cmbTipoMovimiento, cmbTarjetaOrigen, cmbTarjetaDestino, 
+// txtCantidad, txtDescripcion, lblTarjetaDestino
+public class FrmMovimientos extends javax.swing.JFrame {
+
+    private final MovimientoDAO movimientoDAO = new MovimientoDAO();
+    private final TarjetaDAO tarjetaDAO = new TarjetaDAO();
+
+    public FrmMovimientos() {
+        initComponents();
+        setLocationRelativeTo(null); 
+        cargarTiposMovimiento();
+        cargarTarjetas();
+        cmbTipoMovimiento.addActionListener(e -> toggleTransferenciaFields());
+        toggleTransferenciaFields(); 
+    }
+    
+    private void cargarTiposMovimiento() {
+        DefaultComboBoxModel<String> modelo = new DefaultComboBoxModel<>();
+        modelo.addElement("Abono");
+        modelo.addElement("Retiro");
+        modelo.addElement("Transferencia entre cuentas");
+        cmbTipoMovimiento.setModel(modelo);
+    }
+
+    private void cargarTarjetas() {
+        DefaultComboBoxModel<Tarjeta> origenModelo = new DefaultComboBoxModel<>();
+        DefaultComboBoxModel<Tarjeta> destinoModelo = new DefaultComboBoxModel<>();
+        try {
+            List<Tarjeta> tarjetas = tarjetaDAO.listar();
+            for (Tarjeta t : tarjetas) {
+                origenModelo.addElement(t); 
+                destinoModelo.addElement(t); 
+            }
+            cmbTarjetaOrigen.setModel(origenModelo); 
+            cmbTarjetaDestino.setModel(destinoModelo); 
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error al cargar tarjetas: " + e.getMessage()); }
+    }
+
+    private void toggleTransferenciaFields() {
+        String tipo = (String) cmbTipoMovimiento.getSelectedItem();
+        boolean esTransferencia = tipo != null && tipo.toLowerCase().contains("transferencia");
+        
+        lblTarjetaDestino.setVisible(esTransferencia);
+        cmbTarjetaDestino.setVisible(esTransferencia);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void initComponents() { /* [Tu código initComponents() aquí] */ }
+
+    private void btnRealizarMovimientoActionPerformed(java.awt.event.ActionEvent evt) {                                         
+        try {
+            String tipo = (String) cmbTipoMovimiento.getSelectedItem();
+            Tarjeta tarjetaOrigen = (Tarjeta) cmbTarjetaOrigen.getSelectedItem();
+            BigDecimal cantidad = new BigDecimal(txtCantidad.getText().trim());
+            String descripcion = txtDescripcion.getText().trim();
+            
+            if (tarjetaOrigen == null || cantidad.compareTo(BigDecimal.ZERO) <= 0 || descripcion.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Todos los campos (Cantidad > 0, Tarjeta y Descripción) son obligatorios."); return;
+            }
+
+            if (tipo.toLowerCase().contains("transferencia")) {
+                Tarjeta tarjetaDestino = (Tarjeta) cmbTarjetaDestino.getSelectedItem();
+                if (tarjetaDestino == null) { JOptionPane.showMessageDialog(this, "Debe seleccionar la tarjeta de destino."); return; }
+                if (tarjetaOrigen.getId_tarjeta() == tarjetaDestino.getId_tarjeta()) {
+                    JOptionPane.showMessageDialog(this, "La tarjeta de origen y destino deben ser diferentes."); return;
+                }
+                
+                movimientoDAO.transferir(tarjetaOrigen.getId_tarjeta(), tarjetaDestino.getId_tarjeta(), cantidad, descripcion);
+                JOptionPane.showMessageDialog(this, "Transferencia realizada y saldo actualizado correctamente.");
+                
+            } else {
+                Movimiento nuevoMov = new Movimiento(tipo, cantidad, descripcion, tarjetaOrigen.getId_tarjeta());
+                movimientoDAO.registrarMovimientoTransaccion(nuevoMov);
+                JOptionPane.showMessageDialog(this, "Movimiento de " + tipo + " realizado y saldo actualizado correctamente.");
+            }
+            
+            cargarTarjetas(); 
+            txtCantidad.setText("");
+            txtDescripcion.setText("");
+            
+        } catch (NumberFormatException e) { JOptionPane.showMessageDialog(this, "La cantidad debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalStateException e) { JOptionPane.showMessageDialog(this, "Error de operación: " + e.getMessage(), "Error Lógico", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) { JOptionPane.showMessageDialog(this, "Error en la base de datos: " + e.getMessage(), "Error SQL", JOptionPane.ERROR_MESSAGE); }
+    }
